@@ -36,12 +36,12 @@ yolo/
 │  ├─ test.jpg
 │  └─ test.mp4
 ├─ models/
-│  └─ crow.pt                    # (선택) 학습된 best를 복사해 고정 경로로 사용
-├─ Crow-2/                       # Roboflow 데이터셋(자동 생성/선택적으로 유지)
-└─ runs/                         # 학습/추론 결과(자동 생성)
+│  └─ crow.pt               # (선택) 학습된 best를 복사해 고정 경로로 사용
+├─ Crow-2/                  # Roboflow 데이터셋(자동 생성/선택적으로 유지)
+└─ runs/                    # 학습/추론 결과(자동 생성)
    └─ detect/
       ├─ train*/weights/best.pt
-      └─ custom/                 # predict 결과 저장
+      └─ custom/
 ```
 
 > runs/와 Crow-2/는 실행 중 자동 생성됩니다.
@@ -86,37 +86,35 @@ pip install -r requirements.txt
 (슬러그는 Roboflow 프로젝트 페이지 주소창 그대로 사용)
 
 ```env
-# ===== (필수) Roboflow에서 라벨링 후 버전 생성 =====
+# ===== Roboflow 데이터셋 =====
 RF_API_KEY=YOUR_API_KEY
-WORKSPACE=xxxxxxxxxxxx           # 예: 주소창 /xxxxxxxxxxxx/
-PROJECT=xxxx-xxxxx               # 예: 주소창 /xxxxxxxxxxxx/xxxx-xxxxx/
-VERSION=2                        # 생성한 데이터셋 버전 번호
+WORKSPACE=workspace-slug        
+PROJECT=project-slug            
+VERSION=2
 
-# ===== (필수) 학습/추론 공통 =====
-EPOCHS=50
-IMG_SIZE=640                     # 메모리가 빡빡하면 512
-BATCH=-1                         # 자동. 부족하면 8→4→2→1
-MODEL_START=yolov8n.pt           # 또는 yolo11n.pt
-DEVICE=auto                      # 0(첫 GPU)/cpu 등
+# (선택) 데이터셋 경로 지정
+DATASET_DIR=                    # 비워두면 ./<PROJECT>-<VERSION> 사용
+FORCE_DOWNLOAD=false            # true면 기존 폴더 삭제 후 새로 다운로드
 
-# ===== (선택) 학습 가속/안정성 =====
-PATIENCE=18                      # 개선 없으면 조기 종료
-WORKERS=2                        # Win 2~4 권장, 문제 시 0
-CACHE=true                       # true(램)/disk/false
+# ===== 학습/추론 공통 =====
+EPOCHS=100
+IMG_SIZE=640
+BATCH=-1
+MODEL_START=yolov8n.pt          # 또는 yolo11n.pt
+DEVICE=auto                     # 0(첫 GPU)/cpu 등
 
-# ===== (선택) 추론 가중치 경로 =====
-# 비워두면 runs/detect/train*/weights/best.pt을 자동 탐색
+# ===== 학습 안정화/가속 =====
+PATIENCE=20
+WORKERS=2
+CACHE=true
+
+# ===== 추론 가중치 경로 =====
 BEST_PATH=models/crow.pt
 
-# ===== (선택) 추론/표시 옵션 =====
+# ===== 추론/시각화 옵션 =====
 CONF=0.25
 IOU=0.45
-LINE_THICKNESS=3
-FONT_SCALE=0.7
-TEXT_THICKNESS=2
-TEXT_PAD_X=0                     # 라벨 배경 없애려면 0
-TEXT_PAD_Y=0
-TEXT_BG_ALPHA=0                  # 0=배경 없음(테두리+글자만)
+
 ```
 
 ---

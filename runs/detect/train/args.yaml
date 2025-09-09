@@ -2,7 +2,7 @@ task: detect
 mode: train
 model: yolov8n.pt
 data: .\Crow-2\data.yaml
-epochs: 50
+epochs: 100
 time: null
 patience: 20
 batch: -1
@@ -13,7 +13,7 @@ cache: true
 device: '0'
 workers: 2
 project: null
-name: train
+name: train6
 exist_ok: false
 pretrained: true
 optimizer: auto
@@ -102,4 +102,4 @@ auto_augment: randaugment
 erasing: 0.4
 cfg: null
 tracker: botsort.yaml
-save_dir: D:\VsCode\runs\detect\train
+save_dir: D:\VsCode\yolo\runs\detect\train6
