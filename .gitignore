@@ -28,9 +28,10 @@ env/
 runs/                    # Ultralytics 결과(train*/predict*)
 ultralytics/             # (가끔 생김)
 wandb/
+train/
+detect/
 
 # --- Roboflow에서 내려받은 대용량 데이터셋 ---
-Crow-*/                  # 예: Crow-2 전체 무시 (새로 받으면 폴더명이 달라도 패턴 매치)
 datasets/
 data/
 
