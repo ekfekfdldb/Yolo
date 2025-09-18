@@ -5,24 +5,34 @@
 
 ---
 
-## 학습 (Training)
+## 프로그램 소개
 
-### 의존성 설치 (PowerShell)
+- **개요**: Python · Ultralytics YOLO · OpenCV 기반의 **객체 탐지 모델 학습/추론 GUI**
+- **데이터셋**: Roboflow 연동(옵션) 또는 로컬 `data.yaml` 자동 탐색
+- **모델**: YOLOv8 / YOLOv11, 크기 n/s/m/l/x
+- **설정**: Epochs, Image size, Batch, Device(auto/cpu/cuda), Patience, Workers, Cache
+- **모니터링**: 진행률, 상태 로그, 지표(mAP@0.5, mAP@0.5:0.95, Precision, Recall)
+- **동결 대응**: Windows .exe에서 멀티프로세싱 Worker=0, 출력은 사용자 홈(`~/yolo_runs/detect`)에 저장
 
+---
 
-# 1) 가상환경
+# 학습 (Training)
+
+## 의존성 설치 (PowerShell)
+
+### 1) 가상환경
 ```powershell
 python -m venv .venv
 . .\.venv\Scripts\Activate.ps1
 ```
 
-# 2) 필수 패키지
+### 2) 필수 패키지
 ```powershell
 pip install --upgrade pip
 pip install ultralytics torch torchvision opencv-python ruamel.yaml certifi
 ```
 
-# 3) (옵션) Roboflow 연동
+### 3) (옵션) Roboflow 연동
 ```powershell
 pip install roboflow
 ```
@@ -33,10 +43,11 @@ pip install roboflow
 pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
 ```
 
-### 실행 (스크립트)
+## 실행 (스크립트)
 
+
+### GUI 실행
 ```powershell
-# GUI 실행
 python .\train.py
 ```
 
@@ -61,31 +72,31 @@ python -m PyInstaller -F -w .\train.py `
 
 ---
 
-## 추론 (Prediction)
+# 추론 (Prediction)
 
-### 의존성 설치 (PowerShell)
+## 의존성 설치 (PowerShell)
 
 
-# 1) 가상환경 (없으면 위와 동일)
+### 1) 가상환경 (없으면 위와 동일)
 ```powershell
 python -m venv .venv
 . .\.venv\Scripts\Activate.ps1
 ```
 
-# 2) 필수 패키지
+### 2) 필수 패키지
 ```powershell
 pip install --upgrade pip
 pip install ultralytics torch torchvision opencv-python certifi
 ```
 
-# (옵션) 서버/헤드리스 환경이면
+### (옵션) 서버/헤드리스 환경이면
 ```powershell
 pip install opencv-python-headless
 ```
 
-### 실행 (스크립트)
+## 실행 (스크립트)
 
-# GUI 실행
+### GUI 실행
 ```powershell
 python .\predict.py
 ```
@@ -110,33 +121,22 @@ python -m PyInstaller -F -w .\predict.py `
 
 ---
 
-## 프로그램 소개
-
-- **개요**: Python · Ultralytics YOLO · OpenCV 기반의 **객체 탐지 모델 학습/추론 GUI**
-- **데이터셋**: Roboflow 연동(옵션) 또는 로컬 `data.yaml` 자동 탐색
-- **모델**: YOLOv8 / YOLOv11, 크기 n/s/m/l/x
-- **설정**: Epochs, Image size, Batch, Device(auto/cpu/cuda), Patience, Workers, Cache
-- **모니터링**: 진행률, 상태 로그, 지표(mAP@0.5, mAP@0.5:0.95, Precision, Recall)
-- **동결 대응**: Windows .exe에서 멀티프로세싱 Worker=0, 출력은 사용자 홈(`~/yolo_runs/detect`)에 저장
-
----
-
 ## 환경 준비 / 공통 의존성
 
 
-# 1) 가상환경
+### 1) 가상환경
 ```powershell
 python -m venv .venv
 . .\.venv\Scripts\Activate.ps1
 ```
 
-# 2) 공통 패키지
+### 2) 공통 패키지
 ```powershell
 pip install --upgrade pip
 pip install ultralytics torch torchvision opencv-python ruamel.yaml certifi
 ```
 
-# 3) (옵션) Roboflow
+### 3) (옵션) Roboflow
 ```powershell
 pip install roboflow
 ```
