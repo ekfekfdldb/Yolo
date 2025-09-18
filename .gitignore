@@ -1,0 +1,60 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.dylib
+*.egg-info/
+pip-wheel-metadata/
+
+# 가상환경
+.venv/
+venv/
+env/
+ENV/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# 로그
+*.log
+
+
+# 빌드/배포 산출물 (PyInstaller 등)
+build/
+dist/
+
+# 학습/결과/대용량 산출물
+runs/
+runs*/
+
+# 사용자 홈 하위 출력 경로(코드에서 yolo_runs 사용)
+yolo_runs/
+yolo_runs/**
+
+# 가중치/체크포인트/모델 변환물
+*.pt
+*.onnx
+*.tflite
+*.engine
+*.ncnn
+*.mlmodel
+*.safetensors
+
+# (선택) 대용량 원본 데이터셋/캐시가 이 경로에 있다면 유지
+# datasets/
+# roboflow*/     # 로컬에 Roboflow 다운로드 폴더를 만든 경우 사용
+
+
+# 환경설정/민감정보
+.env
+.env.*
+*.env
+
+# 에디터/OS 잡파일
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
