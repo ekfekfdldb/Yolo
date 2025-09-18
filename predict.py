@@ -11,15 +11,13 @@ import torch
 from ultralytics import YOLO
 from datetime import datetime
 
-# ------------------------------
+
 # PyInstaller --onefile 경로 처리
-# ------------------------------
 BASE_DIR = Path(getattr(sys, "_MEIPASS", Path(__file__).parent)).resolve()
 os.chdir(BASE_DIR)
 
-# ------------------------------
+
 # 유틸: 최신 best.pt 찾기 (선택사항 버튼용)
-# ------------------------------
 def find_latest_best(runs_dir="runs/detect"):
     paths = glob.glob(os.path.join(runs_dir, "train*", "weights", "best.pt"))
     if not paths:
@@ -27,9 +25,8 @@ def find_latest_best(runs_dir="runs/detect"):
     paths.sort(key=os.path.getmtime, reverse=True)
     return paths[0]
 
-# ------------------------------
+
 # 유틸: 디바이스 목록 생성
-# ------------------------------
 def list_devices():
     items = ["auto", "cpu"]
     if torch.cuda.is_available():
@@ -50,15 +47,13 @@ def resolve_device(device_choice: str):
             return idx
         except Exception:
             return 0
-    # 숫자만 들어온 경우
     try:
         return int(dc)
     except Exception:
         return "cpu"
 
-# ------------------------------
+
 # 유틸: 입력 경로에서 지원 파일 수집
-# ------------------------------
 IMG_EXTS = (".jpg", ".jpeg", ".png", ".bmp", ".JPG", ".JPEG", ".PNG", ".BMP")
 VID_EXTS = (".mp4", ".avi", ".mov", ".MP4", ".AVI", ".MOV", ".mkv", ".MKV")
 
@@ -75,15 +70,13 @@ def collect_media(paths_or_dirs, recursive=True):
             else:
                 for ext in IMG_EXTS + VID_EXTS:
                     files.extend([str(x) for x in p.glob(f"*{ext}")])
-    # 중복 제거 + 정렬
     files = sorted(set(files), key=lambda x: x.lower())
     img_files = [f for f in files if Path(f).suffix in IMG_EXTS]
     vid_files = [f for f in files if Path(f).suffix in VID_EXTS]
     return img_files, vid_files
 
-# ------------------------------
+
 # 백그라운드 추론 스레드
-# ------------------------------
 def process_all(progress_q, status_q, done_q, error_q, config):
     """
     config: {
@@ -127,11 +120,9 @@ def process_all(progress_q, status_q, done_q, error_q, config):
         # Ultralytics가 내부적으로 dtype/half 최적화를 수행하므로 생략 가능
         # 필요 시: model.to("cuda") 등 직접 이동 가능하나 predict에서 device 설정으로 충분.
 
-        done_units = 0  # 파일 단위 완료 개수
+        done_units = 0
 
-        # --------------------------
         # 비디오 처리
-        # --------------------------
         for video_in in vid_files:
             name = Path(video_in).name
             status_q.put(f"비디오 처리 중: {name}")
@@ -148,12 +139,10 @@ def process_all(progress_q, status_q, done_q, error_q, config):
             fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
             total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT) or 0)
 
-            # 비디오 코덱 선택 (mp4v 기본)
             fourcc = cv2.VideoWriter_fourcc(*"mp4v")
             video_out = str(out_dir / f"{Path(video_in).stem}_pred.mp4")
             writer = cv2.VideoWriter(video_out, fourcc, fps, (w, h))
             if not writer.isOpened():
-                # 코덱 대체 시도
                 fourcc2 = cv2.VideoWriter_fourcc(*"XVID")
                 video_out = str(out_dir / f"{Path(video_in).stem}_pred.avi")
                 writer = cv2.VideoWriter(video_out, fourcc2, fps, (w, h))
@@ -191,9 +180,7 @@ def process_all(progress_q, status_q, done_q, error_q, config):
             done_units += 1
             progress_q.put(int(done_units / total_jobs * 100))
 
-        # --------------------------
         # 이미지 처리
-        # --------------------------
         for image_in in img_files:
             name = Path(image_in).name
             status_q.put(f"이미지 처리 중: {name}")
@@ -227,9 +214,7 @@ def process_all(progress_q, status_q, done_q, error_q, config):
     finally:
         done_q.put(True)
 
-# ------------------------------
 # GUI
-# ------------------------------
 def run_ui():
     root = tk.Tk()
     root.title("YOLO Object Detection - Predict")
@@ -237,7 +222,6 @@ def run_ui():
     root.resizable(False, False)
 
     try:
-        # 보기 좋은 ttk 기본 테마
         style = ttk.Style()
         if "clam" in style.theme_names():
             style.theme_use("clam")
@@ -260,7 +244,6 @@ def run_ui():
     container = ttk.Frame(root, padding=12)
     container.pack(fill="both", expand=True)
 
-    # 상태 & 진행률
     status_var = tk.StringVar(value="대기 중")
     lbl_status = ttk.Label(container, textvariable=status_var)
     lbl_status.pack(anchor="w", pady=(0, 6))
@@ -268,7 +251,6 @@ def run_ui():
     pb = ttk.Progressbar(container, style="Green.Horizontal.TProgressbar", orient="horizontal", mode="determinate", maximum=100)
     pb.pack(fill="x", pady=(0, 10))
 
-    # 가중치 선택
     frm_weights = ttk.LabelFrame(container, text="가중치(Weights)")
     frm_weights.pack(fill="x", padx=0, pady=(0, 8))
     weight_path_var = tk.StringVar()
@@ -293,7 +275,6 @@ def run_ui():
 
     ttk.Button(frm_weights, text="찾아보기", command=browse_weights, width=10).pack(side="left", padx=(0, 6))
 
-    # 입력 선택
     frm_inputs = ttk.LabelFrame(container, text="입력(이미지/비디오)")
     frm_inputs.pack(fill="x", padx=0, pady=(0, 8))
 
@@ -346,11 +327,9 @@ def run_ui():
     recursive_var = tk.BooleanVar(value=True)
     ttk.Checkbutton(btn_box, text="하위 폴더 포함", variable=recursive_var).pack(pady=(8, 0), anchor="w")
 
-    # 파라미터
     frm_params = ttk.LabelFrame(container, text="파라미터")
     frm_params.pack(fill="x", padx=0, pady=(0, 8))
 
-    # conf/iou/imgsz/vid_stride
     def add_labeled_spin(parent, label, from_, to, inc, init, width=8):
         f = ttk.Frame(parent)
         ttk.Label(f, text=label, width=10).pack(side="left")
@@ -364,7 +343,6 @@ def run_ui():
     f1.pack(side="left", padx=(10, 0), pady=8)
     f2.pack(side="left", padx=(0, 0), pady=8)
 
-    # vid_stride (정수), imgsz(정수)
     f3 = ttk.Frame(frm_params)
     ttk.Label(f3, text="frame", width=10).pack(side="left")
     vid_stride_var = tk.IntVar(value=1)
@@ -379,7 +357,6 @@ def run_ui():
     sp_imgsz.pack(side="left", padx=(4, 12))
     f4.pack(side="left", pady=8)
 
-    # 디바이스 선택
     f5 = ttk.Frame(frm_params)
     ttk.Label(f5, text="device", width=10).pack(side="left")
     device_var = tk.StringVar(value="auto")
@@ -387,7 +364,6 @@ def run_ui():
     cmb.pack(side="left", padx=(4, 12))
     f5.pack(side="left", pady=8)
 
-    # 버튼 행
     frm_btn = ttk.Frame(container)
     frm_btn.pack(fill="x", pady=(6, 0))
 
@@ -399,13 +375,11 @@ def run_ui():
     btn_open.pack(side="left", padx=(0, 6))
     btn_exit.pack(side="right")
 
-    # 큐(스레드 통신)
     progress_q = queue.Queue()
     status_q   = queue.Queue()
     done_q     = queue.Queue()
     error_q    = queue.Queue()
 
-    # 결과 폴더 열기
     def open_out():
         out_dir = Path("runs") / "detect" / "custom"
         out_dir.mkdir(parents=True, exist_ok=True)
@@ -428,7 +402,6 @@ def run_ui():
                 pass
 
     def start():
-        # 입력값 검증
         weights = weight_path_var.get().strip()
         if not weights or not os.path.exists(weights):
             messagebox.showerror("오류", "가중치(.pt) 파일을 선택하세요.")
@@ -437,7 +410,6 @@ def run_ui():
             messagebox.showerror("오류", "입력 파일 또는 폴더를 추가하세요.")
             return
 
-        # 진행률 초기화
         pb["value"] = 0
         status_var.set("초기화 중…")
         btn_open.config(state="disabled")
@@ -460,7 +432,6 @@ def run_ui():
         root.after(120, poll_queues)
 
     def poll_queues():
-        # 진행률
         while not progress_q.empty():
             v = progress_q.get_nowait()
             try:
@@ -469,22 +440,18 @@ def run_ui():
                 v = 0
             pb["value"] = max(0, min(100, v))
 
-        # 상태 텍스트
         while not status_q.empty():
             s = status_q.get_nowait()
             status_var.set(s)
 
-        # 오류
         if not error_q.empty():
             err = error_q.get_nowait()
             messagebox.showerror("오류", err)
 
-        # 완료 여부
         if not done_q.empty():
             pb["value"] = 100
             btn_open.config(state="normal")
             set_controls_enabled(True)
-            # 상태 라벨에 (완료) 덧붙임
             status_var.set(f"{status_var.get()}  (완료)")
             return
 

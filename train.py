@@ -29,26 +29,18 @@ except Exception:
 import torch
 from ultralytics import YOLO
 
-# ------------------------------
-# PyInstaller / 동결 여부 플래그  ★ 변경
-# ------------------------------
+# PyInstaller / 동결 여부 플래그 
 IS_FROZEN = getattr(sys, "frozen", False)
 
-# ------------------------------
 # PyInstaller --onefile base dir
-# ------------------------------
 BASE_DIR = Path(getattr(sys, "_MEIPASS", Path(__file__).parent)).resolve()
 os.chdir(BASE_DIR)
 
-# ------------------------------
-# 안전한 runs 출력 경로 고정  ★ 변경
-# ------------------------------
+# 안전한 runs 출력 경로 고정 
 RUNS_DIR = (Path.home() / "yolo_runs" / "detect").resolve()
 RUNS_DIR.mkdir(parents=True, exist_ok=True)
 
-# ------------------------------
 # Utils
-# ------------------------------
 def find_data_yaml(preferred_base=None):
     """data.yaml / data.yml 자동 탐색"""
     candidates = []
@@ -95,12 +87,11 @@ def compose_weight_name(ver: str, size: str) -> str:
       - v11 -> 'yolo11{size}.pt'   # v 없음
     """
     v = str(ver).strip()
-    # 'YOLOv11', 'YOLO11', 'yolov8' 등 다양한 입력 방어
     up = v.upper()
     if up.startswith("YOLOV"):
-        v = v[5:]   # 'YOLOv11' -> '11'
+        v = v[5:] 
     elif up.startswith("YOLO"):
-        v = v[4:]   # 'YOLO11'  -> '11'
+        v = v[4:]
 
     v = "11" if v in ("11", "11n", "11s", "11m", "11l", "11x") else "8"
 
@@ -110,9 +101,7 @@ def compose_weight_name(ver: str, size: str) -> str:
 
     return f"yolo11{s}.pt" if v == "11" else f"yolov8{s}.pt"
 
-# ------------------------------
 # Training backend (thread)
-# ------------------------------
 def train_worker(cfg, progress_q, status_q, done_q, error_q, metrics_q, runpath_q):
     """
     cfg keys:
@@ -129,7 +118,6 @@ def train_worker(cfg, progress_q, status_q, done_q, error_q, metrics_q, runpath_
     """
     dataset_location = None
     try:
-        # 1) Dataset
         if cfg["mode"] == "roboflow":
             if not ROBOFLOW_AVAILABLE:
                 raise RuntimeError("Roboflow SDK가 설치되어 있지 않습니다. 'roboflow' 설치 또는 Local 모드를 사용하세요.")
@@ -150,20 +138,17 @@ def train_worker(cfg, progress_q, status_q, done_q, error_q, metrics_q, runpath_
             elif cfg.get("data_root"):
                 dataset_location = cfg["data_root"]
 
-        # 2) data.yaml
         data_yaml = cfg.get("data_yaml", None)
         if not data_yaml:
             data_yaml = find_data_yaml(preferred_base=dataset_location)
         if not data_yaml or not os.path.exists(data_yaml):
             raise RuntimeError("data.yaml을 찾지 못했습니다. 경로를 확인하세요.")
 
-        # 3) Model (버전/사이즈 기반 가중치 자동)
         weights_name = compose_weight_name(cfg["model_version"], cfg["model_size"])
         dev = resolve_device(cfg["device"])
         status_q.put(f"모델 로딩: {weights_name} (device={dev})")
-        model = YOLO(weights_name)  # 온라인은 자동 다운로드, 오프라인은 동일 파일 필요
+        model = YOLO(weights_name) 
 
-        # 4) Progress callbacks
         total_epochs = int(cfg["epochs"])
         trainer_state = {"save_dir": None}
 
@@ -176,7 +161,6 @@ def train_worker(cfg, progress_q, status_q, done_q, error_q, metrics_q, runpath_
             epoch = int(trainer.epoch) + 1
             pr = int(epoch / max(1, total_epochs) * 100)
             progress_q.put(min(99, max(0, pr)))
-            # 에폭 로그(가능한 손실 요약)
             try:
                 loss_box = trainer.label_loss_items(trainer.tloss, prefix="train")
                 loss_str = ", ".join([f"{k}={v:.4f}" for k, v in loss_box.items()])
@@ -192,11 +176,9 @@ def train_worker(cfg, progress_q, status_q, done_q, error_q, metrics_q, runpath_
         model.add_callback("on_train_epoch_end", on_train_epoch_end)
         model.add_callback("on_train_end", on_train_end)
 
-        # 5) Train kwargs  ★ 변경: project 경로와 workers 결정
-        # 동결 환경에서는 멀티프로세싱 워커를 0으로 고정하는 것이 안전
         safe_workers = int(cfg.get("workers", 0 if IS_FROZEN else 2))
         if IS_FROZEN:
-            safe_workers = 0  # 강제
+            safe_workers = 0
 
         train_kwargs = dict(
             data=data_yaml,
@@ -208,16 +190,13 @@ def train_worker(cfg, progress_q, status_q, done_q, error_q, metrics_q, runpath_
             workers=safe_workers,
             cache=bool(cfg.get("cache", True)),
             verbose=True,
-            project=str(RUNS_DIR),   # ★ 변경: 안전한 사용자 홈 하위 경로
+            project=str(RUNS_DIR), 
             name=None,
         )
 
-        # 6) Train
         status_q.put("학습 시작…")
         _ = model.train(**train_kwargs)
 
-        # 7) Metrics (mAP, P, R)
-        # save_dir은 Ultralytics가 세팅, 혹은 runs 디렉토리에서 가장 최근 것
         run_dir = trainer_state["save_dir"]
         if not run_dir or not os.path.isdir(run_dir):
             cand = sorted([p for p in glob.glob(str(RUNS_DIR / "train*")) if os.path.isdir(p)],
@@ -252,8 +231,6 @@ def train_worker(cfg, progress_q, status_q, done_q, error_q, metrics_q, runpath_
 
         metrics_q.put({"run_dir": run_dir, "summary": summary})
 
-        # 8) Delete dataset (optional)
-        # (로컬/Roboflow 다운로드 폴더를 지워 용량 절약)
         try:
             if cfg.get("delete_dataset", False) and dataset_location and os.path.isdir(dataset_location):
                 shutil.rmtree(dataset_location, ignore_errors=True)
@@ -267,9 +244,7 @@ def train_worker(cfg, progress_q, status_q, done_q, error_q, metrics_q, runpath_
     finally:
         done_q.put(True)
 
-# ------------------------------
 # GUI
-# ------------------------------
 def run_ui():
     root = tk.Tk()
     root.title("YOLO Training")
@@ -294,17 +269,14 @@ def run_ui():
     main = ttk.Frame(root, padding=12)
     main.pack(fill="both", expand=True)
 
-    # === Status + Progress ===
     status_var = tk.StringVar(value="대기 중")
     ttk.Label(main, textvariable=status_var).pack(anchor="w", pady=(0, 6))
     pb = ttk.Progressbar(main, style="Green.Horizontal.TProgressbar",
                          orient="horizontal", mode="determinate", maximum=100)
     pb.pack(fill="x", pady=(0, 10))
 
-    # === Dataset source tabs ===
     source_nb = ttk.Notebook(main); source_nb.pack(fill="x", pady=(0, 10))
 
-    # Roboflow tab
     tab_rf = ttk.Frame(source_nb, padding=8); source_nb.add(tab_rf, text="Roboflow")
     rf_api_var = tk.StringVar(); rf_ws_var = tk.StringVar()
     rf_proj_var = tk.StringVar(); rf_ver_var = tk.IntVar(value=1)
@@ -326,7 +298,6 @@ def run_ui():
     ttk.Checkbutton(frm_rf_ver, text="강제 재다운로드", variable=rf_force_var).pack(side="left")  # 한글화
     frm_rf_ver.pack(fill="x", pady=4)
 
-    # Local tab
     tab_local = ttk.Frame(source_nb, padding=8); source_nb.add(tab_local, text="Local data.yaml")
     data_yaml_var = tk.StringVar(); data_root_var = tk.StringVar()
 
@@ -350,7 +321,6 @@ def run_ui():
     ttk.Button(frm_root, text="찾아보기", command=browse_data_root, width=10).pack(side="left", padx=(6,0))
     frm_root.pack(fill="x", pady=4)
 
-    # === Training Parameters (3줄 grid) ===
     params = ttk.LabelFrame(main, text="Training Parameters")
     params.pack(fill="x", pady=(0, 10))
 
@@ -359,15 +329,13 @@ def run_ui():
     batch_var   = tk.IntVar(value=16)
     device_var  = tk.StringVar(value="auto")
     patience_var= tk.IntVar(value=20)
-    # ★ 변경: 동결 환경이면 기본 workers=0
     workers_var = tk.IntVar(value=0 if IS_FROZEN else 3)
     cache_var   = tk.BooleanVar(value=True)
     delete_ds_var = tk.BooleanVar(value=False)
 
-    model_ver_var = tk.StringVar(value="")   # '8' or '11'
-    model_sz_var  = tk.StringVar(value="")   # 'n','s','m','l','x'
+    model_ver_var = tk.StringVar(value="")
+    model_sz_var  = tk.StringVar(value="")
 
-    # 1줄: Model Version, Model Size
     ttk.Label(params, text="Model Version").grid(row=0, column=0, sticky="w", padx=6, pady=4)
     ttk.Combobox(params, textvariable=model_ver_var, values=["YOLOv8","YOLOv11"], state="readonly", width=9)\
         .grid(row=0, column=1, sticky="w", padx=6, pady=4)
@@ -375,7 +343,6 @@ def run_ui():
     ttk.Combobox(params, textvariable=model_sz_var, values=["n","s","m","l","x"], state="readonly", width=9)\
         .grid(row=0, column=3, sticky="w", padx=6, pady=4)
 
-    # 2줄: Epochs, Image Size, Batch, Device
     ttk.Label(params, text="Epochs").grid(row=1, column=0, sticky="w", padx=6, pady=4)
     ttk.Spinbox(params, textvariable=epochs_var, from_=1, to=2000, width=8)\
         .grid(row=1, column=1, sticky="w", padx=6, pady=4)
@@ -389,7 +356,6 @@ def run_ui():
     ttk.Combobox(params, textvariable=device_var, values=list_devices(), state="readonly", width=10)\
         .grid(row=1, column=7, sticky="w", padx=6, pady=4)
 
-    # 3줄: Patience, Workers, Cache, Delete
     ttk.Label(params, text="Patience").grid(row=2, column=0, sticky="w", padx=6, pady=4)
     ttk.Spinbox(params, textvariable=patience_var, from_=0, to=200, width=8)\
         .grid(row=2, column=1, sticky="w", padx=6, pady=4)
@@ -404,7 +370,6 @@ def run_ui():
     for col in range(8):
         params.grid_columnconfigure(col, weight=1, minsize=90)
 
-    # === Training Log ===
     logfrm = ttk.LabelFrame(main, text="Training Log")
     logfrm.pack(fill="both", expand=True)
     txt = tk.Text(logfrm, height=12)
@@ -417,7 +382,6 @@ def run_ui():
         txt.insert(tk.END, msg + "\n")
         txt.see(tk.END)
 
-    # === Metrics panel ===
     metfrm = ttk.LabelFrame(main, text="결과 지표 (after training)")
     metfrm.pack(fill="x", pady=(8, 4))
     mAP_var   = tk.StringVar(value="—")
@@ -434,7 +398,6 @@ def run_ui():
     ttk.Label(metfrm, text="Recall").grid(row=0, column=6, sticky="w", padx=20, pady=2)
     ttk.Label(metfrm, textvariable=R_var).grid(row=0, column=7, sticky="w", padx=6, pady=2)
 
-    # === Buttons ===
     btns = ttk.Frame(main); btns.pack(fill="x", pady=(8, 0))
     btn_start = ttk.Button(btns, text="학습 시작", width=16)
     btn_open  = ttk.Button(btns, text="결과 폴더 열기", width=16, state="disabled")
@@ -443,14 +406,13 @@ def run_ui():
     btn_open.pack(side="left", padx=(10, 0))
     btn_close.pack(side="right")
 
-    # queues & state
     progress_q = queue.Queue()
     status_q   = queue.Queue()
     done_q     = queue.Queue()
     error_q    = queue.Queue()
     metrics_q  = queue.Queue()
     runpath_q  = queue.Queue()
-    last_run_dir = {"path": None}   # 이번 학습 폴더 기억
+    last_run_dir = {"path": None}
 
     def find_latest_run_dir():
         cands = sorted([p for p in glob.glob(str(RUNS_DIR / "train*")) if os.path.isdir(p)],
@@ -489,25 +451,20 @@ def run_ui():
         ver_val = model_ver_var.get().strip() or "11"
         size_val = model_sz_var.get().strip() or "n"
 
-        # ★ 변경: 동결 환경에서는 workers=0을 강제
         requested_workers = int(workers_var.get())
         workers_for_cfg = 0 if IS_FROZEN else requested_workers
 
         cfg = {
             "mode": mode,
-            # roboflow
             "rf_api_key": rf_api_var.get().strip(),
             "rf_workspace": rf_ws_var.get().strip(),
             "rf_project": rf_proj_var.get().strip(),
             "rf_version": rf_ver_var.get(),
             "force_download": bool(rf_force_var.get()),
-            # local
             "data_yaml": data_yaml_var.get().strip(),
             "data_root": data_root_var.get().strip(),
-            # model
             "model_version": ver_val,
             "model_size": size_val,
-            # train
             "epochs": int(epochs_var.get()),
             "imgsz": int(imgsz_var.get()),
             "batch": int(batch_var.get()),
@@ -515,7 +472,6 @@ def run_ui():
             "patience": int(patience_var.get()),
             "workers": workers_for_cfg,
             "cache": bool(cache_var.get()),
-            # misc
             "delete_dataset": bool(delete_ds_var.get()),
         }
 
@@ -586,7 +542,6 @@ def run_ui():
     root.mainloop()
 
 if __name__ == "__main__":
-    # ★ 변경: Windows PyInstaller(onefile)에서 멀티프로세싱 초기화 필수
     import multiprocessing as mp
     mp.freeze_support()
     run_ui()
