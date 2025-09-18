@@ -1,4 +1,4 @@
-# YOLO_EXE – 학습 & 추론 GUI
+# YOLO 학습 & 추론 프로그램
 
 - [학습 (Training)](#학습-training)
 - [추론 (Prediction)](#추론-prediction)
@@ -154,19 +154,19 @@ pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
 
 ## 프로젝트 구조
 
-~~~text
+```text
 YOLO_EXE/
-├─ .venv/                 # 가상환경 (커밋 X)
-├─ build/                 # PyInstaller 중간 산출물 (커밋 X)
-├─ dist/                  # 빌드 결과 .exe (커밋 X)
+├─ .venv/                 # 가상환경
+├─ build/                 # PyInstaller 중간 산출물
+├─ dist/                  # 빌드 결과 .exe
 ├─ .gitignore
 ├─ predict.py             # 추론 GUI
 ├─ train.py               # 학습 GUI
-├─ YOLO_Predict.spec      # (선택) PyInstaller 스펙 파일
-├─ YOLO_Training.spec     # (선택) PyInstaller 스펙 파일
-├─ yolo11n.pt             # (예시) v11 가중치 (커밋 X 권장)
-└─ yolov8n.pt             # (예시) v8  가중치 (커밋 X 권장)
-~~~
+├─ YOLO_Predict.spec      # PyInstaller 스펙 파일
+├─ YOLO_Training.spec     # PyInstaller 스펙 파일
+├─ yolo11n.pt             # v11 가중치
+└─ yolov8n.pt             # v8  가중치
+```
 
 > `.pt` 가중치와 `runs/` 산출물은 저장소에 커밋하지 않는 것을 권장합니다.  
 > 스펙 파일(`*.spec`)은 **재현 가능한 빌드**를 위해 커밋 권장(팀 작업 시 유용).
