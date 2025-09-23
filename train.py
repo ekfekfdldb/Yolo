@@ -10,7 +10,6 @@ import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
 import io
 
-# ---- 콘솔 없는 실행(-w, pythonw)에서 print() 안전 처리 ----
 class _SilentIO(io.TextIOBase):
     def write(self, _): return 0
     def flush(self): pass
@@ -19,7 +18,6 @@ if getattr(sys, "stdout", None) is None:
 if getattr(sys, "stderr", None) is None:
     sys.stderr = _SilentIO()
 
-# Optional Roboflow
 try:
     from roboflow import Roboflow
     ROBOFLOW_AVAILABLE = True
@@ -29,18 +27,14 @@ except Exception:
 import torch
 from ultralytics import YOLO
 
-# PyInstaller / 동결 여부 플래그 
 IS_FROZEN = getattr(sys, "frozen", False)
 
-# PyInstaller --onefile base dir
 BASE_DIR = Path(getattr(sys, "_MEIPASS", Path(__file__).parent)).resolve()
 os.chdir(BASE_DIR)
 
-# 안전한 runs 출력 경로 고정 
 RUNS_DIR = (Path.home() / "yolo_runs" / "detect").resolve()
 RUNS_DIR.mkdir(parents=True, exist_ok=True)
 
-# Utils
 def find_data_yaml(preferred_base=None):
     """data.yaml / data.yml 자동 탐색"""
     candidates = []
@@ -101,7 +95,6 @@ def compose_weight_name(ver: str, size: str) -> str:
 
     return f"yolo11{s}.pt" if v == "11" else f"yolov8{s}.pt"
 
-# Training backend (thread)
 def train_worker(cfg, progress_q, status_q, done_q, error_q, metrics_q, runpath_q):
     """
     cfg keys:
@@ -120,7 +113,7 @@ def train_worker(cfg, progress_q, status_q, done_q, error_q, metrics_q, runpath_
     try:
         if cfg["mode"] == "roboflow":
             if not ROBOFLOW_AVAILABLE:
-                raise RuntimeError("Roboflow SDK가 설치되어 있지 않습니다. 'roboflow' 설치 또는 Local 모드를 사용하세요.")
+                raise RuntimeError("Roboflow SDK가 설치되어 있지 않습니다. 'Roboflow' 설치 또는 Local 모드를 사용하세요.")
             status_q.put("데이터셋 다운로드 중(Roboflow)…")
             if cfg.get("force_download", False):
                 target = f"./{cfg['rf_project']}-{cfg['rf_version']}"
@@ -244,7 +237,6 @@ def train_worker(cfg, progress_q, status_q, done_q, error_q, metrics_q, runpath_
     finally:
         done_q.put(True)
 
-# GUI
 def run_ui():
     root = tk.Tk()
     root.title("YOLO Training")

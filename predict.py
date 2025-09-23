@@ -12,12 +12,10 @@ from ultralytics import YOLO
 from datetime import datetime
 
 
-# PyInstaller --onefile 경로 처리
 BASE_DIR = Path(getattr(sys, "_MEIPASS", Path(__file__).parent)).resolve()
 os.chdir(BASE_DIR)
 
 
-# 유틸: 최신 best.pt 찾기 (선택사항 버튼용)
 def find_latest_best(runs_dir="runs/detect"):
     paths = glob.glob(os.path.join(runs_dir, "train*", "weights", "best.pt"))
     if not paths:
@@ -26,7 +24,6 @@ def find_latest_best(runs_dir="runs/detect"):
     return paths[0]
 
 
-# 유틸: 디바이스 목록 생성
 def list_devices():
     items = ["auto", "cpu"]
     if torch.cuda.is_available():
@@ -53,7 +50,6 @@ def resolve_device(device_choice: str):
         return "cpu"
 
 
-# 유틸: 입력 경로에서 지원 파일 수집
 IMG_EXTS = (".jpg", ".jpeg", ".png", ".bmp", ".JPG", ".JPEG", ".PNG", ".BMP")
 VID_EXTS = (".mp4", ".avi", ".mov", ".MP4", ".AVI", ".MOV", ".mkv", ".MKV")
 
@@ -76,7 +72,6 @@ def collect_media(paths_or_dirs, recursive=True):
     return img_files, vid_files
 
 
-# 백그라운드 추론 스레드
 def process_all(progress_q, status_q, done_q, error_q, config):
     """
     config: {
@@ -101,11 +96,9 @@ def process_all(progress_q, status_q, done_q, error_q, config):
         imgsz = config.get("imgsz", None)
         device = resolve_device(config.get("device", "auto"))
 
-        # 결과 디렉토리
         out_dir = Path(config.get("out_dir") or (Path("runs") / "detect" / "custom"))
         out_dir.mkdir(parents=True, exist_ok=True)
 
-        # 입력 수집
         img_files, vid_files = collect_media(inputs, recursive=recursive)
         total_jobs = len(img_files) + len(vid_files)
         if total_jobs == 0:
@@ -116,13 +109,8 @@ def process_all(progress_q, status_q, done_q, error_q, config):
         status_q.put(f"모델 로딩: {Path(weights).name} (device={device})")
         model = YOLO(weights)
 
-        # 일부 환경에서 half가 더 빠름 (CUDA일 때만)
-        # Ultralytics가 내부적으로 dtype/half 최적화를 수행하므로 생략 가능
-        # 필요 시: model.to("cuda") 등 직접 이동 가능하나 predict에서 device 설정으로 충분.
-
         done_units = 0
 
-        # 비디오 처리
         for video_in in vid_files:
             name = Path(video_in).name
             status_q.put(f"비디오 처리 중: {name}")
@@ -180,7 +168,6 @@ def process_all(progress_q, status_q, done_q, error_q, config):
             done_units += 1
             progress_q.put(int(done_units / total_jobs * 100))
 
-        # 이미지 처리
         for image_in in img_files:
             name = Path(image_in).name
             status_q.put(f"이미지 처리 중: {name}")
@@ -214,7 +201,6 @@ def process_all(progress_q, status_q, done_q, error_q, config):
     finally:
         done_q.put(True)
 
-# GUI
 def run_ui():
     root = tk.Tk()
     root.title("YOLO Object Detection - Predict")
